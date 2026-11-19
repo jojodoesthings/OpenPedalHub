@@ -38,8 +38,22 @@ public sealed class TrayIcon : IDisposable
         _icon.Dispose();
     }
 
-    // The app's emblem, drawn rather than loaded: a silver orb with a green ring.
+    // The tray shows the app's own icon (app.ico, built into the program), at the size Windows wants for the tray.
     static Icon MakeIcon()
+    {
+        try
+        {
+            var res = System.Windows.Application.GetResourceStream(new Uri("pack://application:,,,/app.ico"));
+            if (res != null)
+                using (res.Stream)
+                    return new Icon(res.Stream, Forms.SystemInformation.SmallIconSize);
+        }
+        catch { /* fall back to the drawn emblem below */ }
+        return DrawEmblem();
+    }
+
+    // The same emblem, drawn: a silver orb with a green ring. Only used if app.ico cannot be read.
+    static Icon DrawEmblem()
     {
         using var bmp = new Bitmap(32, 32);
         using (var g = Graphics.FromImage(bmp))

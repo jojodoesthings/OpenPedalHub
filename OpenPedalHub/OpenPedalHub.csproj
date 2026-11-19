@@ -10,7 +10,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>OpenPedalHub</RootNamespace>
     <AssemblyName>OpenPedalHub</AssemblyName>
+    <!-- One icon for the program file, window, taskbar and tray. Made by tools\make_icon.ps1. -->
+    <ApplicationIcon>app.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Resource Include="app.ico" />
+  </ItemGroup>
 
   <!--
     Privacy: a normal build writes the full path of the source folder (which includes the builder's Windows
