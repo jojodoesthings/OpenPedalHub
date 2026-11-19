@@ -1,0 +1,11 @@
+{
+  "Name": "Thrustmaster T-Pedals (T3PM via USB adapter)",
+  "Vid": "044F",
+  "Pid": "B678",
+  "Axes": {
+    "clutch": { "Usage": 54, "AxisName": "Slider", "Reversed": true },
+    "brake": { "Usage": 50, "AxisName": "Z", "Reversed": true },
+    "throttle": { "Usage": 53, "AxisName": "Rz", "Reversed": true }
+  },
+  "HideFromGames": true
+}

@@ -1,0 +1,17 @@
+Design an app icon / logo for "OpenPedalHub", a free, community-driven PC hub for tuning sim-racing pedals (throttle, brake and clutch response curves) across many hardware brands.
+
+STYLE: mid-2000s glossy "Frutiger Aero" console-dashboard aesthetic. Brushed silver and pearl white, wet-look glass highlights, soft bevels, a bright lime-to-deep-green glow, smooth reflections and a faint mirrored floor reflection. Clean, optimistic, slightly futuristic, like a console power button from 2005-2008. High-gloss 3D render, not flat design.
+
+SUBJECT: a polished silver sphere seen straight on, like a glossy power-button orb. Set into its face is a ring of light split into THREE equal curved segments with small gaps between them: one glows blue (clutch), one red (brake), one green (throttle). The segments look like illuminated glass inlaid in a dark groove. The ring is the "hub": the three segments visibly meet around one shared centre, a small smooth silver dome. A soft white specular highlight sweeps across the top half of the sphere.
+
+"OPEN" CUE: the ring is not fully closed. Leave one slightly wider gap at the top, like an open circle, with a soft green glow spilling out of it, suggesting openness and community.
+
+OPTIONAL DETAIL: one thin glowing green curve rising from lower-left to upper-right behind the orb, like a response curve on a graph. Keep it subtle.
+
+COMPOSITION: centred, symmetrical, single object, generous padding, square 1:1. Soft green ambient glow behind the orb. Plain light silver-white gradient background, or transparent. Must stay readable at 32x32 pixels, so keep shapes bold and simple.
+
+COLOURS: silver #DCE1E5 to white, lime green #8AD03A to deep green #3F8F0E, accent blue #4FAEF5, accent red #F4634F.
+
+DO NOT include: any text or letters, any real company logos or trademarks, an "X" shape, game controllers, cars, steering wheels, or literal pedals. No flat or minimalist vector style, no dark or gritty look, no neon cyberpunk.
+
+OUTPUT: one finished icon, 1024x1024, crisp edges, studio-quality gloss.

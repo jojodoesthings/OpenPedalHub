@@ -1,0 +1,21 @@
+# Build output. Besides being regenerated on every build, these can contain the builder's
+# user-folder path, so they must never be committed.
+bin/
+obj/
+*.pdb
+
+# Editor and per-user files
+.vs/
+*.user
+*.suo
+
+# Windows shortcuts store the full target path, user name and computer name.
+*.lnk
+
+# Local settings, reports and backups (these live in AppData / Documents, listed here as a safety net)
+settings*.json
+reports/
+
+# Scratch files
+*.tmp
+*.log

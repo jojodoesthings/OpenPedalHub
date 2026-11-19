@@ -1,0 +1,550 @@
+<Window x:Class="OpenPedalHub.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:OpenPedalHub"
+        Title="OpenPedalHub" Width="1280" Height="950" MinWidth="1180" MinHeight="890"
+        WindowStartupLocation="CenterScreen" UseLayoutRounding="True"
+        Background="{DynamicResource Bg}" Foreground="{DynamicResource Fg}"
+        FontFamily="{StaticResource Ui}" FontSize="13">
+    <WindowChrome.WindowChrome>
+        <WindowChrome CaptionHeight="44" GlassFrameThickness="0,0,0,1" CornerRadius="0" ResizeBorderThickness="6"/>
+    </WindowChrome.WindowChrome>
+
+    <Window.Resources>
+        <DataTemplate x:Key="PedalCard" DataType="{x:Type local:PedalViewModel}">
+            <Grid x:Name="CardRoot" Margin="11,0" Background="Transparent">
+                <!-- Coloured glow behind the panel; brightens on hover like a focused dashboard tile -->
+                <Border x:Name="Glow" CornerRadius="18" Background="{DynamicResource CardSolid}">
+                    <Border.Effect>
+                        <DropShadowEffect Color="{Binding Accent2Color}" BlurRadius="30" ShadowDepth="0" Opacity="0.30"/>
+                    </Border.Effect>
+                </Border>
+
+                <Border x:Name="CardBody" SizeChanged="CardBody_SizeChanged" CornerRadius="18" BorderThickness="1" BorderBrush="{DynamicResource CardEdge}" Background="{DynamicResource CardBg}">
+                    <Grid>
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="*"/>
+                        </Grid.RowDefinitions>
+
+                        <!-- Glossy coloured header -->
+                        <Border Grid.Row="0" CornerRadius="17,17,0,0">
+                            <Border.Background>
+                                <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                    <GradientStop Color="{Binding AccentColor}" Offset="0"/>
+                                    <GradientStop Color="{Binding Accent2Color}" Offset="1"/>
+                                </LinearGradientBrush>
+                            </Border.Background>
+                            <Grid>
+                                <Border CornerRadius="17,17,0,0" VerticalAlignment="Top" Height="46">
+                                    <Border.Background>
+                                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                                            <GradientStop Color="#78FFFFFF" Offset="0"/>
+                                            <GradientStop Color="#1EFFFFFF" Offset="1"/>
+                                        </LinearGradientBrush>
+                                    </Border.Background>
+                                </Border>
+                                <!-- A band of light sweeps across every few seconds -->
+                                <Grid IsHitTestVisible="False" SizeChanged="SweepHost_SizeChanged">
+                                    <Rectangle Width="110" HorizontalAlignment="Left" Margin="-320,0,0,0">
+                                        <Rectangle.Fill>
+                                            <LinearGradientBrush StartPoint="0,0" EndPoint="1,0">
+                                                <GradientStop Color="#00FFFFFF" Offset="0"/>
+                                                <GradientStop Color="#66FFFFFF" Offset="0.5"/>
+                                                <GradientStop Color="#00FFFFFF" Offset="1"/>
+                                            </LinearGradientBrush>
+                                        </Rectangle.Fill>
+                                        <Rectangle.LayoutTransform>
+                                            <SkewTransform AngleX="-24"/>
+                                        </Rectangle.LayoutTransform>
+                                        <Rectangle.RenderTransform>
+                                            <TranslateTransform/>
+                                        </Rectangle.RenderTransform>
+                                        <Rectangle.Triggers>
+                                            <EventTrigger RoutedEvent="Loaded">
+                                                <BeginStoryboard>
+                                                    <Storyboard RepeatBehavior="Forever">
+                                                        <DoubleAnimationUsingKeyFrames Storyboard.TargetProperty="(UIElement.RenderTransform).(TranslateTransform.X)">
+                                                            <LinearDoubleKeyFrame KeyTime="0:0:0" Value="0"/>
+                                                            <LinearDoubleKeyFrame KeyTime="0:0:2.5" Value="0"/>
+                                                            <EasingDoubleKeyFrame KeyTime="0:0:3.9" Value="1000">
+                                                                <EasingDoubleKeyFrame.EasingFunction>
+                                                                    <SineEase EasingMode="EaseInOut"/>
+                                                                </EasingDoubleKeyFrame.EasingFunction>
+                                                            </EasingDoubleKeyFrame>
+                                                            <LinearDoubleKeyFrame KeyTime="0:0:8" Value="1000"/>
+                                                        </DoubleAnimationUsingKeyFrames>
+                                                    </Storyboard>
+                                                </BeginStoryboard>
+                                            </EventTrigger>
+                                        </Rectangle.Triggers>
+                                    </Rectangle>
+                                </Grid>
+                                <Border VerticalAlignment="Bottom" Height="1" Background="#40000000"/>
+                                <DockPanel Margin="22,14,22,14" TextElement.Foreground="White">
+                                    <StackPanel DockPanel.Dock="Right">
+                                        <TextBlock Text="{Binding OutputText}" FontFamily="{StaticResource Display}" FontSize="42" FontWeight="Bold"
+                                                   TextAlignment="Right" LineHeight="44" LineStackingStrategy="BlockLineHeight"/>
+                                        <TextBlock Text="SENT TO GAME" FontSize="10.5" FontWeight="SemiBold" Opacity="0.9" TextAlignment="Right"/>
+                                    </StackPanel>
+                                    <StackPanel VerticalAlignment="Center">
+                                        <TextBlock Text="{Binding Name}" FontFamily="{StaticResource Display}" FontSize="27" FontWeight="SemiBold"/>
+                                        <TextBlock Text="{Binding Subtitle}" Opacity="0.9" Margin="0,2,0,0"/>
+                                    </StackPanel>
+                                </DockPanel>
+                            </Grid>
+                        </Border>
+
+                        <StackPanel Grid.Row="1" Margin="22,18,22,18">
+                            <local:CurveView Height="236" Margin="0,0,0,16"
+                                             Low="{Binding Low}" High="{Binding High}" Gamma="{Binding Gamma}"
+                                             Input="{Binding Input}" Points="{Binding Points}"
+                                             Accent="{Binding AccentColor}" Accent2="{Binding Accent2Color}"/>
+
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Text="%" FontFamily="{StaticResource Mono}" Foreground="{DynamicResource Muted}" VerticalAlignment="Center"/>
+                                <TextBox DockPanel.Dock="Right" Style="{StaticResource Num}" Foreground="{Binding AccentText}" KeyDown="Num_KeyDown"
+                                         Text="{Binding Low, StringFormat={}{0:0.0}, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBlock Text="Dead zone at rest" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <Slider Minimum="0" Maximum="40" SmallChange="0.1" LargeChange="1"
+                                    Value="{Binding Low}" Foreground="{Binding AccentGradient}" Margin="0,1,0,7"/>
+
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Text="%" FontFamily="{StaticResource Mono}" Foreground="{DynamicResource Muted}" VerticalAlignment="Center"/>
+                                <TextBox DockPanel.Dock="Right" Style="{StaticResource Num}" Foreground="{Binding AccentText}" KeyDown="Num_KeyDown"
+                                         Text="{Binding High, StringFormat={}{0:0.0}, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBlock Text="Dead zone at full press" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <Slider Minimum="0" Maximum="40" SmallChange="0.1" LargeChange="1"
+                                    Value="{Binding High}" Foreground="{Binding AccentGradient}" Margin="0,1,0,7"/>
+
+                            <DockPanel>
+                                <TextBlock DockPanel.Dock="Right" Text=" " FontFamily="{StaticResource Mono}" VerticalAlignment="Center"/>
+                                <TextBox DockPanel.Dock="Right" Style="{StaticResource Num}" Foreground="{Binding AccentText}" KeyDown="Num_KeyDown"
+                                         IsEnabled="{Binding UsesGamma}"
+                                         Text="{Binding Gamma, StringFormat={}{0:0.00}, UpdateSourceTrigger=LostFocus}"/>
+                                <TextBlock Text="Gamma (sensitivity)" VerticalAlignment="Center"/>
+                            </DockPanel>
+                            <Slider Minimum="0.3" Maximum="3" SmallChange="0.01" LargeChange="0.1" IsEnabled="{Binding UsesGamma}"
+                                    Value="{Binding Gamma}" Foreground="{Binding AccentGradient}" Margin="0,1,0,2"/>
+                            <TextBlock Text="{Binding CurveHint}" Foreground="{DynamicResource Muted}" FontSize="12"
+                                       TextTrimming="CharacterEllipsis"/>
+
+                            <DockPanel Margin="0,12,0,0">
+                                <Button DockPanel.Dock="Right" Content="Reset" Style="{StaticResource Ghost}" Click="ResetPedal_Click"
+                                        ToolTip="Back to a straight line for this pedal (keeps calibration and axis settings)"/>
+                                <ToggleButton Content="Custom curve" Style="{StaticResource Switch}" HorizontalAlignment="Left"
+                                              IsChecked="{Binding Custom}" BorderBrush="{Binding AccentGradient}"
+                                              ToolTip="Shape the curve by dragging points on the graph instead of using gamma"/>
+                            </DockPanel>
+
+                            <Border Height="1" Background="{DynamicResource Divider}" Margin="0,12,0,10"/>
+                            <DockPanel>
+                                <Button DockPanel.Dock="Right" Content="{Binding AxisText}" Style="{StaticResource Ghost}" Padding="10,2" FontSize="11"
+                                        Foreground="{DynamicResource Muted}" IsEnabled="{Binding IsLive}" Click="CycleAxis_Click"
+                                        ToolTip="If this card follows the wrong pedal, click to try the next axis"/>
+                                <ToggleButton Content="Reverse axis" ToolTip="Turn on if this pedal reads 100% when your foot is off it"
+                                              Style="{StaticResource Switch}" HorizontalAlignment="Left"
+                                              IsChecked="{Binding Invert}" BorderBrush="{Binding AccentGradient}"/>
+                            </DockPanel>
+                            <!-- Only while no real pedal is driving this card -->
+                            <StackPanel Visibility="{Binding Manual, Converter={StaticResource Vis}}" Margin="0,8,0,0">
+                                <TextBlock Text="SIMULATED PEDAL" Style="{StaticResource Caps}"/>
+                                <Slider Minimum="0" Maximum="100" Value="{Binding Input}" Foreground="{DynamicResource Muted}" Margin="0,2,0,0"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Grid>
+                </Border>
+
+                <!-- Reflection of the panel's lower edge on the "floor" beneath it, fading out -->
+                <Rectangle Height="64" VerticalAlignment="Bottom" Margin="1,0,1,-67" IsHitTestVisible="False">
+                    <Rectangle.Fill>
+                        <!-- The lowest tenth of the panel, flipped upside down inside the brush -->
+                        <!-- Which strip of the panel to show is set in code (CardBody_SizeChanged), in exact units -->
+                        <VisualBrush Visual="{Binding ElementName=CardBody}" ViewboxUnits="Absolute"
+                                     Stretch="Fill" RelativeTransform="1,0,0,-1,0,1"/>
+                    </Rectangle.Fill>
+                    <Rectangle.OpacityMask>
+                        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+                            <GradientStop Color="#8C000000" Offset="0"/>
+                            <GradientStop Color="#00000000" Offset="0.85"/>
+                        </LinearGradientBrush>
+                    </Rectangle.OpacityMask>
+                </Rectangle>
+            </Grid>
+            <DataTemplate.Triggers>
+                <Trigger SourceName="CardRoot" Property="IsMouseOver" Value="True">
+                    <Trigger.EnterActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetName="Glow" Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.Opacity)" To="0.85" Duration="0:0:0.2"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.EnterActions>
+                    <Trigger.ExitActions>
+                        <BeginStoryboard>
+                            <Storyboard>
+                                <DoubleAnimation Storyboard.TargetName="Glow" Storyboard.TargetProperty="(UIElement.Effect).(DropShadowEffect.Opacity)" To="0.30" Duration="0:0:0.35"/>
+                            </Storyboard>
+                        </BeginStoryboard>
+                    </Trigger.ExitActions>
+                </Trigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Border Background="{DynamicResource WindowBg}">
+        <Border.Style>
+            <Style TargetType="Border">
+                <Style.Triggers>
+                    <!-- A maximised chromeless window overhangs the screen by the resize border. -->
+                    <DataTrigger Binding="{Binding WindowState, RelativeSource={RelativeSource AncestorType=Window}}" Value="Maximized">
+                        <Setter Property="Padding" Value="7"/>
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+        </Border.Style>
+        <Grid ClipToBounds="True">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="44"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="*"/>
+            </Grid.RowDefinitions>
+
+            <!-- Sweeping curves of light and a green glow behind everything -->
+            <Ellipse Grid.RowSpan="4" Width="1700" Height="900" HorizontalAlignment="Left" VerticalAlignment="Top" Margin="-500,-640,0,0"
+                     IsHitTestVisible="False" Fill="{DynamicResource Swoosh}" Stroke="{DynamicResource SwooshEdge}" StrokeThickness="2"/>
+            <Ellipse Grid.RowSpan="4" Width="1900" Height="1100" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-900,-860"
+                     IsHitTestVisible="False" Fill="{DynamicResource Swoosh2}" Stroke="{DynamicResource SwooshEdge}" StrokeThickness="2"/>
+            <Ellipse Grid.RowSpan="4" Width="1000" Height="760" HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="0,0,-380,-460" IsHitTestVisible="False">
+                <Ellipse.Fill>
+                    <RadialGradientBrush>
+                        <GradientStop Color="#807BC62D" Offset="0"/>
+                        <GradientStop Color="#007BC62D" Offset="1"/>
+                    </RadialGradientBrush>
+                </Ellipse.Fill>
+            </Ellipse>
+
+            <!-- Title bar -->
+            <DockPanel Grid.Row="0">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button Style="{StaticResource Caption}" Content="&#xE921;" Click="Minimize_Click" ToolTip="Minimize"/>
+                    <Button Style="{StaticResource Caption}" Content="&#xE922;" Click="Maximize_Click" ToolTip="Maximize"/>
+                    <Button Style="{StaticResource CaptionClose}" Content="&#xE8BB;" Click="Close_Click" ToolTip="Close"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center" Margin="20,0,0,0">
+                    <!-- Silver orb with a ring of green light; the glow behind it pulses while output is live -->
+                    <Grid Width="22" Height="22" VerticalAlignment="Center">
+                        <Ellipse x:Name="OrbGlow" Margin="-8" Opacity="0">
+                            <Ellipse.Fill>
+                                <RadialGradientBrush>
+                                    <GradientStop Color="#FF7BC62D" Offset="0.35"/>
+                                    <GradientStop Color="#007BC62D" Offset="1"/>
+                                </RadialGradientBrush>
+                            </Ellipse.Fill>
+                        </Ellipse>
+                        <Ellipse Fill="{DynamicResource Knob}" Stroke="{DynamicResource KnobEdge}" StrokeThickness="1"/>
+                        <Ellipse x:Name="OrbRing" Margin="4" Stroke="{DynamicResource Brand}" StrokeThickness="3"/>
+                    </Grid>
+                    <TextBlock Text="OpenPedalHub" Margin="10,0,0,0" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                    <Border Margin="14,0,0,0" Padding="9,2" CornerRadius="9" Background="{DynamicResource Brand}" VerticalAlignment="Center">
+                        <TextBlock Text="PEDALS READ-ONLY" FontSize="10" FontWeight="SemiBold" Foreground="White"/>
+                    </Border>
+                </StackPanel>
+            </DockPanel>
+
+            <!-- Device status and main controls -->
+            <DockPanel Grid.Row="1" Margin="32,10,32,12">
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <ToggleButton x:Name="OutputToggle" Style="{StaticResource Switch}" Content="Send to game" IsChecked="True"
+                                  Checked="Output_Changed" Unchecked="Output_Changed"
+                                  ToolTip="Feed the shaped pedal values to the virtual controller that games read"/>
+                    <ToggleButton x:Name="SweepToggle" Style="{StaticResource Switch}" Content="Demo sweep" Margin="24,0"
+                                  Checked="Sweep_Changed" Unchecked="Sweep_Changed"/>
+                    <Button x:Name="SettingsButton" Style="{StaticResource Ghost}" Click="Settings_Click">
+                        <StackPanel Orientation="Horizontal">
+                            <TextBlock FontFamily="{StaticResource Icons}" Text="&#xE713;" FontSize="14" VerticalAlignment="Center" Margin="0,1,8,0"/>
+                            <TextBlock Text="Settings"/>
+                        </StackPanel>
+                    </Button>
+                </StackPanel>
+                <StackPanel>
+                    <TextBlock Text="pedal response" FontFamily="{StaticResource Display}" FontSize="34" FontWeight="Light"/>
+                    <StackPanel Orientation="Horizontal" Margin="2,4,0,0">
+                        <Ellipse x:Name="StatusDot" Width="9" Height="9" Fill="{DynamicResource Muted}" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="StatusText" Margin="8,0,0,0" Foreground="{DynamicResource Muted}" Text="Looking for T-Pedals"/>
+                    </StackPanel>
+                    <TextBlock x:Name="OutputText" Margin="19,2,0,0" Foreground="{DynamicResource Muted}" TextTrimming="CharacterEllipsis"/>
+                </StackPanel>
+            </DockPanel>
+
+            <!-- Profile selector: arrows slide between named profiles -->
+            <Grid Grid.Row="2" Margin="32,0,32,16">
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Center">
+                    <Button x:Name="PrevProfile" Style="{StaticResource Orb}" Content="&#xE76B;" Tag="silent" Click="PrevProfile_Click"
+                            ToolTip="Previous profile (Left arrow key)"/>
+                    <Border Width="380" Height="46" Margin="12,0" CornerRadius="23" Background="{DynamicResource Glass}"
+                            BorderBrush="{DynamicResource Line}" BorderThickness="1">
+                        <Grid>
+                            <TextBlock Text="PROFILE" Style="{StaticResource Caps}" FontSize="9.5" HorizontalAlignment="Left" VerticalAlignment="Center" Margin="20,0,0,0"/>
+                            <TextBlock x:Name="ProfileCount" Style="{StaticResource Caps}" FontSize="9.5" HorizontalAlignment="Right" VerticalAlignment="Center" Margin="0,0,20,0"/>
+                            <Grid Margin="78,0" ClipToBounds="True">
+                                <TextBlock x:Name="ProfileName" FontFamily="{StaticResource Display}" FontSize="19" FontWeight="SemiBold"
+                                           HorizontalAlignment="Center" VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                                    <TextBlock.RenderTransform>
+                                        <TranslateTransform x:Name="ProfileSlide"/>
+                                    </TextBlock.RenderTransform>
+                                </TextBlock>
+                                <TextBox x:Name="ProfileEdit" Visibility="Collapsed" MaxLength="28" FontFamily="{StaticResource Display}" FontSize="18"
+                                         FontWeight="SemiBold" TextAlignment="Center" VerticalAlignment="Center" Padding="4,2"
+                                         BorderBrush="{DynamicResource Green}" BorderThickness="0,0,0,2" Background="Transparent"
+                                         Foreground="{DynamicResource Fg}" CaretBrush="{DynamicResource Fg}"
+                                         KeyDown="ProfileEdit_KeyDown" LostFocus="ProfileEdit_LostFocus"/>
+                            </Grid>
+                        </Grid>
+                    </Border>
+                    <Button x:Name="NextProfile" Style="{StaticResource Orb}" Content="&#xE76C;" Tag="silent" Click="NextProfile_Click"
+                            ToolTip="Next profile (Right arrow key)"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" VerticalAlignment="Center">
+                    <Button Content="New" Style="{StaticResource Ghost}" Click="NewProfile_Click" ToolTip="Add a profile, starting as a copy of this one"/>
+                    <Button Content="Rename" Style="{StaticResource Ghost}" Margin="8,0" Click="RenameProfile_Click"/>
+                    <Button x:Name="DeleteProfile" Content="Delete" Style="{StaticResource Ghost}" Click="DeleteProfile_Click"/>
+                </StackPanel>
+            </Grid>
+
+            <ItemsControl Grid.Row="3" x:Name="PedalList" Margin="21,0" ItemTemplate="{StaticResource PedalCard}"
+                          VerticalAlignment="Top" Loaded="PedalList_Loaded">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <UniformGrid Rows="1"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+            </ItemsControl>
+
+            <!-- Settings menu -->
+            <Popup x:Name="SettingsPopup" PlacementTarget="{Binding ElementName=SettingsButton}" Placement="Bottom"
+                   HorizontalOffset="-238" VerticalOffset="2" StaysOpen="False" AllowsTransparency="True" PopupAnimation="Fade">
+                <Border Margin="16" Width="340" CornerRadius="16" Padding="22,18,22,20" Background="{DynamicResource CardBg}"
+                        BorderBrush="{DynamicResource CardEdge}" BorderThickness="1" TextElement.Foreground="{DynamicResource Fg}"
+                        TextElement.FontFamily="{StaticResource Ui}" TextElement.FontSize="13">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="20" ShadowDepth="4" Direction="270" Opacity="0.35"/>
+                    </Border.Effect>
+                    <StackPanel>
+                        <TextBlock Text="settings" FontFamily="{StaticResource Display}" FontSize="26" FontWeight="Light"/>
+
+                        <TextBlock Text="THEME" Style="{StaticResource Caps}" Margin="0,14,0,6"/>
+                        <Border CornerRadius="13" Padding="3" HorizontalAlignment="Left" Background="{DynamicResource Glass}"
+                                BorderBrush="{DynamicResource Line}" BorderThickness="1">
+                            <StackPanel Orientation="Horizontal">
+                                <RadioButton x:Name="ThemeDefault" Style="{StaticResource Segment}" GroupName="Theme" Content="Default" Checked="Theme_Checked"/>
+                                <RadioButton x:Name="ThemeDark" Style="{StaticResource Segment}" GroupName="Theme" Content="Dark" Checked="Theme_Checked"/>
+                            </StackPanel>
+                        </Border>
+
+                        <TextBlock Text="WINDOWS" Style="{StaticResource Caps}" Margin="0,18,0,8"/>
+                        <ToggleButton x:Name="StartupToggle" Style="{StaticResource Switch}" Content="Start with Windows"
+                                      Checked="Startup_Changed" Unchecked="Startup_Changed"
+                                      ToolTip="Open quietly in the notification area when you sign in, so the pedals are always ready"/>
+                        <ToggleButton x:Name="TrayToggle" Style="{StaticResource Switch}" Content="Minimising sends the window to the tray" Margin="0,10,0,0"
+                                      Checked="Tray_Changed" Unchecked="Tray_Changed"
+                                      ToolTip="Off: minimising keeps the app on the taskbar like any other window"/>
+
+                        <TextBlock Text="GAME OVERLAY" Style="{StaticResource Caps}" Margin="0,18,0,8"/>
+                        <ToggleButton x:Name="OverlayToggle" Style="{StaticResource Switch}" Content="Show overlay on top of the game"
+                                      Checked="Overlay_Changed" Unchecked="Overlay_Changed"
+                                      ToolTip="A small bar that stays above other windows, with a tab per pedal that opens a tuning panel"/>
+                        <ToggleButton x:Name="OverlayLockToggle" Style="{StaticResource Switch}" Content="Lock overlay position" Margin="0,10,0,0"
+                                      Checked="Overlay_Changed" Unchecked="Overlay_Changed"
+                                      ToolTip="Hides the drag handle so the overlay cannot be moved by accident"/>
+
+                        <TextBlock Text="GAMES" Style="{StaticResource Caps}" Margin="0,18,0,8"/>
+                        <Button Content="Game connection check" Style="{StaticResource Ghost}" HorizontalAlignment="Stretch" Click="Connection_Click"
+                                ToolTip="See whether everything needed to reach a game is installed, and get help with what is missing"/>
+
+                        <TextBlock Text="PEDALS" Style="{StaticResource Caps}" Margin="0,18,0,8"/>
+                        <Button Content="Set up a pedal set" Style="{StaticResource Ghost}" HorizontalAlignment="Stretch" Margin="0,0,0,8" Click="SetupPedals_Click"
+                                ToolTip="Teach the app a pedal set it does not know yet, and create a report file to share"/>
+                        <Button Content="Calibrate pedals" Style="{StaticResource Ghost}" HorizontalAlignment="Stretch" Click="Calibrate_Click"
+                                ToolTip="Measure where each pedal really rests and bottoms out"/>
+                        <Button Content="Reset all curves in this profile" Style="{StaticResource Ghost}" HorizontalAlignment="Stretch" Margin="0,8,0,0" Click="ResetAll_Click"
+                                ToolTip="Back to straight lines for all three pedals (keeps calibration and axis settings)"/>
+
+                        <Border Height="1" Background="{DynamicResource Divider}" Margin="0,16,0,12"/>
+                        <TextBlock Foreground="{DynamicResource Muted}" FontSize="11.5" TextWrapping="Wrap"
+                                   Text="This app only listens to pedal positions and never writes to the pedal set. Shaped output goes to a separate virtual controller. Everything here is saved on this PC."/>
+                    </StackPanel>
+                </Border>
+            </Popup>
+
+            <!-- Calibration screen -->
+            <Grid x:Name="CalOverlay" Grid.RowSpan="4" Panel.ZIndex="8" Visibility="Collapsed" Background="{DynamicResource Shade}"
+                  WindowChrome.IsHitTestVisibleInChrome="True">
+                <Border Width="560" HorizontalAlignment="Center" VerticalAlignment="Center" CornerRadius="18" Padding="30,24,30,26"
+                        Background="{DynamicResource CardBg}" BorderBrush="{DynamicResource CardEdge}" BorderThickness="1">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="34" ShadowDepth="6" Direction="270" Opacity="0.4"/>
+                    </Border.Effect>
+                    <StackPanel>
+                        <TextBlock Text="pedal calibration" FontFamily="{StaticResource Display}" FontSize="28" FontWeight="Light"/>
+                        <TextBlock x:Name="CalText" TextWrapping="Wrap" Margin="0,10,0,18" FontSize="14"/>
+                        <ItemsControl x:Name="CalList">
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate DataType="{x:Type local:PedalViewModel}">
+                                    <Grid Margin="0,0,0,14">
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="80"/>
+                                            <ColumnDefinition Width="*"/>
+                                            <ColumnDefinition Width="170"/>
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock Text="{Binding Name}" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                                        <ProgressBar Grid.Column="1" Style="{StaticResource Meter}" Minimum="0" Maximum="100"
+                                                     Value="{Binding CalMeter, Mode=OneWay}" Foreground="{Binding AccentGradient}" VerticalAlignment="Center"/>
+                                        <TextBlock Grid.Column="2" Text="{Binding CalNote}" Foreground="{DynamicResource Muted}" Margin="14,0,0,0"
+                                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis"/>
+                                    </Grid>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                        <DockPanel Margin="0,8,0,0">
+                            <Button x:Name="CalClear" DockPanel.Dock="Left" Content="Clear calibration" Style="{StaticResource Ghost}" Click="CalClear_Click"
+                                    ToolTip="Go back to using each axis's full range"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button x:Name="CalCancel" Content="Cancel" Style="{StaticResource Ghost}" Click="CalCancel_Click"/>
+                                <Button x:Name="CalFinish" Content="Finish" Style="{StaticResource Ghost}" Background="{DynamicResource Brand}"
+                                        Foreground="White" FontWeight="SemiBold" Margin="8,0,0,0" Click="CalFinish_Click"/>
+                            </StackPanel>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- "Game connection" checklist -->
+            <Grid x:Name="ConnOverlay" Grid.RowSpan="4" Panel.ZIndex="8" Visibility="Collapsed" Background="{DynamicResource Shade}"
+                  WindowChrome.IsHitTestVisibleInChrome="True">
+                <Grid.Resources>
+                    <Style x:Key="Dot" TargetType="Border">
+                        <Setter Property="Width" Value="30"/>
+                        <Setter Property="Height" Value="30"/>
+                        <Setter Property="CornerRadius" Value="15"/>
+                        <Setter Property="VerticalAlignment" Value="Top"/>
+                    </Style>
+                    <Style x:Key="DotGlyph" TargetType="TextBlock">
+                        <Setter Property="FontFamily" Value="{StaticResource Icons}"/>
+                        <Setter Property="FontSize" Value="14"/>
+                        <Setter Property="Foreground" Value="White"/>
+                        <Setter Property="HorizontalAlignment" Value="Center"/>
+                        <Setter Property="VerticalAlignment" Value="Center"/>
+                    </Style>
+                </Grid.Resources>
+                <Border Width="640" HorizontalAlignment="Center" VerticalAlignment="Center" CornerRadius="18" Padding="30,24,30,26"
+                        Background="{DynamicResource CardBg}" BorderBrush="{DynamicResource CardEdge}" BorderThickness="1">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="34" ShadowDepth="6" Direction="270" Opacity="0.4"/>
+                    </Border.Effect>
+                    <StackPanel>
+                        <TextBlock Text="game connection" FontFamily="{StaticResource Display}" FontSize="28" FontWeight="Light"/>
+                        <TextBlock TextWrapping="Wrap" Foreground="{DynamicResource Muted}" Margin="0,8,0,18"
+                                   Text="Games read your pedals through a virtual controller. That needs two free helper programs, which are installed separately."/>
+
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="44"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border x:Name="ConnDot1" Style="{StaticResource Dot}" HorizontalAlignment="Left"><TextBlock Style="{StaticResource DotGlyph}"/></Border>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="1.  Virtual controller driver (vJoy)" FontWeight="SemiBold" FontSize="14"/>
+                                <TextBlock x:Name="ConnText1" TextWrapping="Wrap" Foreground="{DynamicResource Muted}" Margin="0,3,0,0"/>
+                            </StackPanel>
+                            <Button x:Name="ConnBtn1" Grid.Column="2" Style="{StaticResource Ghost}" VerticalAlignment="Top" Margin="14,0,0,0" Click="ConnBtn1_Click"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,16">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="44"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border x:Name="ConnDot2" Style="{StaticResource Dot}" HorizontalAlignment="Left"><TextBlock Style="{StaticResource DotGlyph}"/></Border>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="2.  Virtual pedals" FontWeight="SemiBold" FontSize="14"/>
+                                <TextBlock x:Name="ConnText2" TextWrapping="Wrap" Foreground="{DynamicResource Muted}" Margin="0,3,0,0"/>
+                            </StackPanel>
+                            <Button x:Name="ConnBtn2" Grid.Column="2" Style="{StaticResource Ghost}" VerticalAlignment="Top" Margin="14,0,0,0" Click="ConnBtn2_Click"/>
+                        </Grid>
+                        <Grid Margin="0,0,0,6">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="44"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            <Border x:Name="ConnDot3" Style="{StaticResource Dot}" HorizontalAlignment="Left"><TextBlock Style="{StaticResource DotGlyph}"/></Border>
+                            <StackPanel Grid.Column="1">
+                                <TextBlock Text="3.  Hide the real pedals from games (HidHide, optional)" FontWeight="SemiBold" FontSize="14"/>
+                                <TextBlock x:Name="ConnText3" TextWrapping="Wrap" Foreground="{DynamicResource Muted}" Margin="0,3,0,0"/>
+                            </StackPanel>
+                            <Button x:Name="ConnBtn3" Grid.Column="2" Style="{StaticResource Ghost}" VerticalAlignment="Top" Margin="14,0,0,0" Click="ConnBtn3_Click"/>
+                        </Grid>
+
+                        <Border Height="1" Background="{DynamicResource Divider}" Margin="0,14,0,14"/>
+                        <DockPanel>
+                            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                                <Button Content="Check again" Style="{StaticResource Ghost}" Click="ConnCheck_Click"/>
+                                <Button Content="Close" Style="{StaticResource Ghost}" Background="{DynamicResource Brand}" Foreground="White"
+                                        FontWeight="SemiBold" Margin="8,0,0,0" Click="ConnClose_Click"/>
+                            </StackPanel>
+                            <TextBlock x:Name="ConnSummary" TextWrapping="Wrap" VerticalAlignment="Center" Margin="0,0,16,0"/>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- "Set up a pedal set" screen -->
+            <Grid x:Name="SetupOverlay" Grid.RowSpan="4" Panel.ZIndex="8" Visibility="Collapsed" Background="{DynamicResource Shade}"
+                  WindowChrome.IsHitTestVisibleInChrome="True">
+                <Border Width="600" HorizontalAlignment="Center" VerticalAlignment="Center" CornerRadius="18" Padding="30,24,30,26"
+                        Background="{DynamicResource CardBg}" BorderBrush="{DynamicResource CardEdge}" BorderThickness="1">
+                    <Border.Effect>
+                        <DropShadowEffect BlurRadius="34" ShadowDepth="6" Direction="270" Opacity="0.4"/>
+                    </Border.Effect>
+                    <StackPanel>
+                        <TextBlock Text="set up a pedal set" FontFamily="{StaticResource Display}" FontSize="28" FontWeight="Light"/>
+                        <TextBlock x:Name="SetupStep" Style="{StaticResource Caps}" Foreground="{DynamicResource Green}" Margin="0,12,0,6"/>
+                        <TextBlock x:Name="SetupText" TextWrapping="Wrap" FontSize="14"/>
+                        <Border x:Name="SetupLiveBox" Margin="0,16,0,0" Padding="14,12" CornerRadius="10" Background="{DynamicResource Field}"
+                                BorderBrush="{DynamicResource Line}" BorderThickness="1">
+                            <StackPanel>
+                                <TextBlock x:Name="SetupLive" TextWrapping="Wrap" Foreground="{DynamicResource Muted}"/>
+                                <ProgressBar x:Name="SetupMeter" Style="{StaticResource Meter}" Minimum="0" Maximum="100" Margin="0,10,0,0"
+                                             Foreground="{DynamicResource Brand}"/>
+                            </StackPanel>
+                        </Border>
+                        <StackPanel x:Name="SetupNameRow" Margin="0,16,0,0" Visibility="Collapsed">
+                            <TextBlock Text="NAME OF THIS PEDAL SET (BRAND AND MODEL)" Style="{StaticResource Caps}" Margin="0,0,0,6"/>
+                            <TextBox x:Name="SetupName" MaxLength="60" Padding="8,6" FontSize="14" Background="{DynamicResource Field}"
+                                     Foreground="{DynamicResource Fg}" CaretBrush="{DynamicResource Fg}" BorderBrush="{DynamicResource Line}"/>
+                        </StackPanel>
+                        <DockPanel Margin="0,20,0,0">
+                            <Button x:Name="SetupFolder" DockPanel.Dock="Left" Content="Show the report file" Style="{StaticResource Ghost}"
+                                    Visibility="Collapsed" Click="SetupFolder_Click"/>
+                            <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                <Button x:Name="SetupCancel" Content="Cancel" Style="{StaticResource Ghost}" Click="SetupCancel_Click"/>
+                                <Button x:Name="SetupSkip" Content="Skip" Style="{StaticResource Ghost}" Margin="8,0,0,0" Click="SetupSkip_Click"/>
+                                <Button x:Name="SetupNext" Content="Next" Style="{StaticResource Ghost}" Background="{DynamicResource Brand}"
+                                        Foreground="White" FontWeight="SemiBold" Margin="8,0,0,0" Click="SetupNext_Click"/>
+                            </StackPanel>
+                        </DockPanel>
+                    </StackPanel>
+                </Border>
+            </Grid>
+
+            <!-- Startup animation, drawn over everything; click to skip -->
+            <local:SplashView x:Name="Splash" Grid.RowSpan="4" Panel.ZIndex="10" Visibility="Collapsed"
+                              WindowChrome.IsHitTestVisibleInChrome="True" MouseDown="Splash_MouseDown"/>
+        </Grid>
+    </Border>
+</Window>

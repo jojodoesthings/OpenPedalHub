@@ -1,0 +1,27 @@
+OpenPedalHub sound files
+========================
+
+Applies to: startup.wav, select1.wav, select3.wav, next.wav, back.wav
+(and any other audio file in this repository unless it says otherwise)
+
+Copyright (C) 2026 @SOHCDSeries. All rights reserved.
+
+These sounds are original works. They are NOT covered by the GNU General Public
+License that applies to the rest of this project.
+
+You may:
+  - use them, unmodified, as part of OpenPedalHub;
+  - redistribute them, unmodified, together with OpenPedalHub or a fork of it,
+    provided this notice is kept with them.
+
+You may not, without the author's written permission:
+  - use them in any other software, video, stream package, product or project;
+  - modify them, sample them, or distribute modified versions;
+  - sell them or include them in anything that is sold.
+
+To ask for permission, contact @SOHCDSeries on Twitter (X).
+
+OpenPedalHub works without these files. If you remove them, the app is simply
+silent, so a fork that does not want to carry them can leave them out.
+
+This is a plain-language notice written by the project, not a lawyer.

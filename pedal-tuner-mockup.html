@@ -1,0 +1,210 @@
+<title>T-Pedals Tuner Mock-up</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Space+Grotesk:wght@500;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: status strip on top, three pedal channels side by side (clutch, brake, throttle — the order they sit on the floor), safety notes below. */
+:root {
+  --bg: #eef1f5; --panel: #ffffff; --line: #d5dbe4; --fg: #18202b; --muted: #5b6878;
+  --track: #e3e8ef; --warn-bg: #fff4d6; --warn-fg: #6b4a00;
+  --clutch: #2f6fd6; --brake: #cf3a3a; --throttle: #1f9254;
+  --display: "Space Grotesk", "Segoe UI", sans-serif;
+  --body: Inter, "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #121820; --panel: #1a222d; --line: #2c3745; --fg: #e6ebf2; --muted: #94a1b3;
+  --track: #263140; --warn-bg: #3a2f10; --warn-fg: #f3d68a;
+  --clutch: #6ea5f5; --brake: #f07070; --throttle: #55c98a; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #121820; --panel: #1a222d; --line: #2c3745; --fg: #e6ebf2; --muted: #94a1b3;
+  --track: #263140; --warn-bg: #3a2f10; --warn-fg: #f3d68a;
+  --clutch: #6ea5f5; --brake: #f07070; --throttle: #55c98a; color-scheme: dark }
+
+body { background: var(--bg); color: var(--fg); font: 14px/1.5 var(--body); }
+.wrap { max-width: 1120px; margin: 0 auto; padding-block: 24px 40px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 20px; }
+h1, h2, h3 { font-family: var(--display); margin: 0; text-wrap: balance; }
+h1 { font-size: 24px; } h2 { font-size: 17px; } h3 { font-size: 15px; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+.label { font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+
+.banner { background: var(--warn-bg); color: var(--warn-fg); border-radius: 8px; padding: 10px 14px; }
+.top { display: flex; flex-wrap: wrap; gap: 16px; align-items: flex-end; justify-content: space-between; }
+.status { display: flex; flex-wrap: wrap; gap: 8px 20px; color: var(--muted); font-size: 13px; }
+.status b { color: var(--fg); font-weight: 500; }
+.dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: var(--muted); margin-right: 6px; }
+.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+select, button { font: inherit; color: var(--fg); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 6px 12px; }
+button { cursor: pointer; } button:hover { border-color: var(--muted); }
+button:focus-visible, select:focus-visible, input:focus-visible { outline: 2px solid var(--clutch); outline-offset: 2px; }
+
+.pedals { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 16px; }
+.pedal { background: var(--panel); border: 1px solid var(--line); border-top: 3px solid var(--c); border-radius: 8px;
+  padding: 16px; display: flex; flex-direction: column; gap: 14px; min-width: 0; }
+.pedal header { display: flex; justify-content: space-between; align-items: baseline; }
+.pedal header span { color: var(--muted); font-size: 12px; }
+svg.curve { width: 100%; height: auto; display: block; }
+.grid { stroke: var(--line); stroke-width: 1; fill: none; }
+.dead { fill: var(--track); }
+.ref { stroke: var(--muted); stroke-width: 1; stroke-dasharray: 3 4; fill: none; }
+.path { stroke: var(--c); stroke-width: 2.5; fill: none; stroke-linejoin: round; }
+.pt { fill: var(--c); stroke: var(--panel); stroke-width: 2; }
+.axis { fill: var(--muted); font: 9px var(--mono); }
+
+.meters { display: grid; grid-template-columns: auto 1fr 4ch; gap: 6px 10px; align-items: center; }
+.bar { height: 8px; background: var(--track); border-radius: 4px; overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--c); }
+.bar.in i { opacity: .45; }
+.meters .mono { text-align: right; }
+
+.ctl { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; align-items: center; }
+.ctl input[type=range] { grid-column: 1 / -1; width: 100%; accent-color: var(--c); margin: 0; }
+.hint { color: var(--muted); font-size: 12px; margin: 0; }
+.row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: space-between; }
+.row label { display: flex; gap: 6px; align-items: center; }
+.sim { border-top: 1px dashed var(--line); padding-top: 12px; }
+
+.notes { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 20px; }
+.notes p { margin: 4px 0 0; color: var(--muted); max-width: 60ch; }
+</style>
+
+<div class="wrap">
+  <div class="banner"><strong>Mock-up only.</strong> Nothing on this page talks to your pedals or to any game. The "pedal travel" sliders stand in for your feet so you can see how each setting would behave.</div>
+
+  <div class="top">
+    <div>
+      <h1>T-Pedals Tuner</h1>
+      <div class="status">
+        <span><span class="dot"></span>Device <b>T-Pedals (T3PM via USB adapter)</b></span>
+        <span>Input <b>read-only</b></span>
+        <span>Output <b>virtual controller, not connected</b></span>
+      </div>
+    </div>
+    <div class="toolbar">
+      <label class="label" for="profile">Profile</label>
+      <select id="profile">
+        <option value="default">Default (linear)</option>
+        <option value="gt">GT3 road racing</option>
+        <option value="rally">Rally / loose surface</option>
+      </select>
+      <button id="reset-all" type="button">Reset all</button>
+    </div>
+  </div>
+
+  <div class="pedals" id="pedals"></div>
+
+  <div>
+    <h2>How the real version keeps the pedal set safe</h2>
+    <div class="notes" style="margin-top:12px">
+      <div><h3>It only listens</h3><p>The app would read the same position reports Windows already receives from the pedals. It never sends anything back to them, and it does not touch firmware or calibration stored in the hardware.</p></div>
+      <div><h3>Curves live on the PC</h3><p>Dead zones and gamma are applied in software and sent to a separate virtual controller that games bind to. The pedals themselves keep reporting raw, unmodified values.</p></div>
+      <div><h3>Closing it undoes everything</h3><p>Quit the app and the pedals behave exactly as they do today. The worst case of a bug is a wrong value reaching the game, not a change to the pedal set.</p></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const PEDALS = [
+  { id: "clutch", name: "Clutch", color: "var(--clutch)" },
+  { id: "brake", name: "Brake", color: "var(--brake)" },
+  { id: "throttle", name: "Throttle", color: "var(--throttle)" },
+];
+const PROFILES = {
+  default: { clutch: [0, 0, 1, 0], brake: [0, 0, 1, 0], throttle: [0, 0, 1, 0] },
+  gt:      { clutch: [5, 10, 1, 0], brake: [3, 8, 1.8, 0], throttle: [2, 3, 1.2, 0] },
+  rally:   { clutch: [5, 15, 0.8, 0], brake: [4, 12, 1.4, 0], throttle: [3, 3, 1.6, 0] },
+};
+const SIM_START = { clutch: 0, brake: 35, throttle: 70 };
+const state = {};
+const S = 180, O = 14; // plot size and left/top offset inside the 208-unit viewBox
+
+function shape(p, x) { // x and result are 0..1
+  if (p.invert) x = 1 - x;
+  const lo = p.low / 100, hi = p.high / 100;
+  const t = Math.min(1, Math.max(0, (x - lo) / Math.max(0.01, 1 - lo - hi)));
+  return Math.pow(t, p.gamma);
+}
+
+function panel(def) {
+  const el = document.createElement("section");
+  el.className = "pedal"; el.style.setProperty("--c", def.color);
+  const i = def.id;
+  el.innerHTML = `
+    <header><h2>${def.name}</h2><span>axis ${PEDALS.indexOf(def) + 1} of 3</span></header>
+    <svg class="curve" viewBox="0 0 208 208" role="img" aria-label="${def.name} response curve">
+      <rect class="dead" id="${i}-dl" y="${O}" height="${S}"></rect>
+      <rect class="dead" id="${i}-dh" y="${O}" height="${S}"></rect>
+      <path class="grid" d="M${O} ${O}h${S}v${S}h-${S}z M${O + S / 2} ${O}v${S} M${O} ${O + S / 2}h${S}"></path>
+      <path class="ref" d="M${O} ${O + S}L${O + S} ${O}"></path>
+      <path class="path" id="${i}-path"></path>
+      <circle class="pt" id="${i}-pt" r="5"></circle>
+      <text class="axis" x="${O}" y="${O + S + 11}">0</text>
+      <text class="axis" x="${O + S}" y="${O + S + 11}" text-anchor="end">pedal travel 100%</text>
+      <text class="axis" x="${O}" y="${O - 4}">output 100%</text>
+    </svg>
+    <div class="meters">
+      <span class="label">Pedal</span><div class="bar in"><i id="${i}-bin"></i></div><span class="mono" id="${i}-vin"></span>
+      <span class="label">Game</span><div class="bar"><i id="${i}-bout"></i></div><span class="mono" id="${i}-vout"></span>
+    </div>
+    <div class="ctl"><label for="${i}-low">Dead zone at rest</label><span class="mono" id="${i}-low-v"></span>
+      <input type="range" id="${i}-low" min="0" max="40" step="1"></div>
+    <div class="ctl"><label for="${i}-high">Dead zone at full press</label><span class="mono" id="${i}-high-v"></span>
+      <input type="range" id="${i}-high" min="0" max="40" step="1"></div>
+    <div class="ctl"><label for="${i}-gamma">Gamma</label><span class="mono" id="${i}-gamma-v"></span>
+      <input type="range" id="${i}-gamma" min="0.3" max="3" step="0.05">
+      <p class="hint" id="${i}-gamma-h" style="grid-column:1/-1"></p></div>
+    <div class="row">
+      <label for="${i}-invert"><input type="checkbox" id="${i}-invert"> Invert axis</label>
+      <button type="button" id="${i}-reset">Reset</button>
+    </div>
+    <div class="ctl sim"><label for="${i}-sim">Simulated pedal travel</label><span class="label">not hardware</span>
+      <input type="range" id="${i}-sim" min="0" max="100" step="1"></div>`;
+  return el;
+}
+
+const $ = (id) => document.getElementById(id);
+
+function draw(i) {
+  const p = state[i];
+  let d = "";
+  for (let k = 0; k <= 60; k++) {
+    const x = k / 60;
+    d += (k ? "L" : "M") + (O + x * S).toFixed(1) + " " + (O + S - shape(p, x) * S).toFixed(1);
+  }
+  $(i + "-path").setAttribute("d", d);
+  const lo = p.low / 100 * S, hi = p.high / 100 * S;
+  const dl = $(i + "-dl"), dh = $(i + "-dh");
+  dl.setAttribute("x", p.invert ? O + S - lo : O); dl.setAttribute("width", lo);
+  dh.setAttribute("x", p.invert ? O : O + S - hi); dh.setAttribute("width", hi);
+  const x = p.sim / 100, y = shape(p, x);
+  $(i + "-pt").setAttribute("cx", O + x * S); $(i + "-pt").setAttribute("cy", O + S - y * S);
+  $(i + "-bin").style.width = p.sim + "%"; $(i + "-vin").textContent = p.sim + "%";
+  $(i + "-bout").style.width = (y * 100) + "%"; $(i + "-vout").textContent = Math.round(y * 100) + "%";
+  $(i + "-low-v").textContent = p.low + "%"; $(i + "-high-v").textContent = p.high + "%";
+  $(i + "-gamma-v").textContent = p.gamma.toFixed(2);
+  $(i + "-gamma-h").textContent = p.gamma > 1.02 ? "Gentler at the start of travel, steeper near the end."
+    : p.gamma < 0.98 ? "More response at the start of travel, flatter near the end." : "Linear: output follows the pedal directly.";
+}
+
+function load(i, v) {
+  Object.assign(state[i], { low: v[0], high: v[1], gamma: v[2], invert: !!v[3] });
+  $(i + "-low").value = v[0]; $(i + "-high").value = v[1]; $(i + "-gamma").value = v[2]; $(i + "-invert").checked = !!v[3];
+  draw(i);
+}
+
+for (const def of PEDALS) {
+  const i = def.id;
+  state[i] = { low: 0, high: 0, gamma: 1, invert: false, sim: SIM_START[i] };
+  $("pedals").appendChild(panel(def));
+  $(i + "-sim").value = SIM_START[i];
+  for (const k of ["low", "high", "gamma", "sim"])
+    $(i + "-" + k).addEventListener("input", (e) => { state[i][k] = +e.target.value; draw(i); });
+  $(i + "-invert").addEventListener("change", (e) => { state[i].invert = e.target.checked; draw(i); });
+  $(i + "-reset").addEventListener("click", () => load(i, PROFILES.default[i]));
+}
+function applyProfile(name) { for (const def of PEDALS) load(def.id, PROFILES[name][def.id]); }
+$("profile").addEventListener("change", (e) => applyProfile(e.target.value));
+$("reset-all").addEventListener("click", () => { $("profile").value = "default"; applyProfile("default"); });
+$("profile").value = "gt"; applyProfile("gt");
+</script>

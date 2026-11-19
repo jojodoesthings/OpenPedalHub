@@ -1,0 +1,43 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <UseWPF>true</UseWPF>
+    <!-- Windows Forms is used only for the notification-area (tray) icon. -->
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>OpenPedalHub</RootNamespace>
+    <AssemblyName>OpenPedalHub</AssemblyName>
+  </PropertyGroup>
+
+  <!--
+    Privacy: a normal build writes the full path of the source folder (which includes the builder's Windows
+    user name) into the program and its .pdb file. Release builds therefore carry no debug file, and any path
+    that does get recorded is rewritten to a neutral one.
+  -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <DebugType>none</DebugType>
+    <DebugSymbols>false</DebugSymbols>
+    <PathMap>$(MSBuildProjectDirectory)=/src</PathMap>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+
+  <!-- Keep Forms/Drawing names out of every file, where they would clash with WPF's Button, Color, Brush, ... -->
+  <ItemGroup>
+    <Using Remove="System.Windows.Forms" />
+    <Using Remove="System.Drawing" />
+  </ItemGroup>
+
+  <!-- Known pedal sets: one .json per model, copied next to the app. See pedalsets\README.md. -->
+  <ItemGroup>
+    <Content Include="pedalsets\*.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <!-- Optional sounds (startup.wav, select3.wav, ...): any .wav one folder up is copied next to the app. -->
+  <ItemGroup>
+    <Content Include="..\*.wav" Link="%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>
