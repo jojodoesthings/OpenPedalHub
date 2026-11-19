@@ -19,3 +19,6 @@ reports/
 # Scratch files
 *.tmp
 *.log
+
+# Local preview settings
+.claude/

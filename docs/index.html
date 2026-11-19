@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenPedalHub: free pedal tuning for sim racing</title>
+<meta name="description" content="Free, community-driven dead zones, gamma and custom curves for sim-racing pedals on Windows. Read-only: it never writes to your pedals.">
+<meta property="og:title" content="OpenPedalHub">
+<meta property="og:description" content="Free, community-driven pedal tuning for sim racing on Windows.">
+<meta property="og:image" content="img/screenshot.png">
+<link rel="icon" href="favicon.ico">
+<style>
+:root {
+  --bg: linear-gradient(#FAFBFB 0%, #DCE1E5 55%, #BEC6CC 100%);
+  --bg-flat: #E3E7EA;
+  --swoosh: rgba(255,255,255,.72); --swoosh2: rgba(255,255,255,.28);
+  --card: linear-gradient(#FFFFFF 0%, #F3F5F7 60%, #DFE4E8 100%);
+  --card-solid: #FFFFFF; --card-edge: #9FA8AF;
+  --line: #AEB6BD; --groove: #C2C9CF; --groove-edge: #A3ACB3;
+  --fg: #262B2F; --muted: #5E6871; --green: #3F8F0E;
+  --glass: linear-gradient(#FFFFFF 0%, #F2F4F6 50%, #DDE2E6 50%, #EAEEF1 100%);
+  --glass-hot: linear-gradient(#FFFFFF 0%, #EAF7DA 50%, #CFEBAE 50%, #E2F4CC 100%);
+  --knob: linear-gradient(#FFFFFF, #CDD3D8); --knob-edge: #8B949B;
+  --divider: rgba(0,0,0,.13);
+  --plot: linear-gradient(#FFFFFF, #E4E9ED); --plot-edge: #AEB6BD;
+  --plot-grid: rgba(0,0,0,.09); --plot-ref: rgba(106,116,125,.55); --plot-dead: rgba(0,0,0,.08);
+  --shadow: 0 10px 30px rgba(40,55,70,.18), 0 2px 5px rgba(40,55,70,.12);
+  --glow: rgba(116,194,42,.38);
+  --brand: linear-gradient(#A5DC55 0%, #74C22A 50%, #55A816 50%, #3F8F0E 100%);
+  --ui: "Segoe UI Variable Text", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --display: "Segoe UI Variable Display", "Segoe UI", system-ui, -apple-system, "Helvetica Neue", Arial, sans-serif;
+  --mono: "Cascadia Mono", Consolas, ui-monospace, Menlo, monospace;
+  color-scheme: light;
+}
+:root[data-theme="dark"] {
+  --bg: linear-gradient(#2A2F35 0%, #1A1D21 55%, #0E1012 100%);
+  --bg-flat: #14171A;
+  --swoosh: rgba(255,255,255,.045); --swoosh2: rgba(255,255,255,.025);
+  --card: linear-gradient(#363C43 0%, #2B3036 60%, #202428 100%);
+  --card-solid: #2B3036; --card-edge: #4E565E;
+  --line: #515961; --groove: #3A4148; --groove-edge: #23272B;
+  --fg: #EEF1F3; --muted: #A3ADB6; --green: #84D03A;
+  --glass: linear-gradient(#535B63 0%, #454D54 50%, #32383E 50%, #3B4248 100%);
+  --glass-hot: linear-gradient(#6B8F3C 0%, #577A2C 50%, #3F5E1C 50%, #4A6C22 100%);
+  --knob-edge: #15181A;
+  --divider: rgba(255,255,255,.13);
+  --plot: linear-gradient(#2E343A, #121518); --plot-edge: #5A636B;
+  --plot-grid: rgba(255,255,255,.12); --plot-ref: rgba(200,208,214,.44); --plot-dead: rgba(255,255,255,.11);
+  --shadow: 0 12px 34px rgba(0,0,0,.5), 0 2px 5px rgba(0,0,0,.4);
+  --glow: rgba(116,194,42,.22);
+  color-scheme: dark;
+}
+/* Pedal colours, as in the app: clutch blue, brake red, throttle green. */
+.blue  { --a1: #8CC8FA; --a2: #3D95E8; --a3: #1F6FCF; --a: #2B7FDB; }
+.red   { --a1: #F6A396; --a2: #E4483A; --a3: #C2281B; --a: #D93A2B; }
+.green { --a1: #A5DC55; --a2: #5FB01C; --a3: #3F8F0E; --a: #4FA014; }
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+body {
+  margin: 0; font: 16px/1.55 var(--ui); color: var(--fg);
+  background: var(--bg-flat); min-height: 100vh; overflow-x: hidden;
+}
+/* The window backdrop: silver fade, two soft swooshes, and the green glow in the corner. */
+.backdrop { position: fixed; inset: 0; z-index: -1; background: var(--bg); overflow: hidden; }
+.backdrop::before, .backdrop::after { content: ""; position: absolute; border-radius: 50%; }
+.backdrop::before { width: 170vw; height: 120vh; left: -90vw; top: -70vh; background: var(--swoosh); }
+.backdrop::after  { width: 150vw; height: 110vh; left: 35vw; top: 62vh; background: var(--swoosh2);
+  box-shadow: 0 0 0 1px var(--swoosh); }
+.backdrop i { position: absolute; right: -20vw; bottom: -30vh; width: 80vw; height: 80vh; border-radius: 50%;
+  background: radial-gradient(closest-side, var(--glow), transparent); }
+
+a { color: var(--green); }
+h1, h2, h3 { font-family: var(--display); margin: 0; }
+.wrap { max-width: 1120px; margin: 0 auto; padding: 0 22px; }
+section { padding: 64px 0 8px; }
+.eyebrow { font-size: 12px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+h2 { font-weight: 300; font-size: clamp(30px, 4.6vw, 44px); letter-spacing: -.01em; line-height: 1.1; margin: 4px 0 10px; text-transform: lowercase; }
+.lead { color: var(--muted); max-width: 62ch; margin: 0 0 26px; }
+
+/* Header */
+header.top { position: sticky; top: 0; z-index: 20; backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--bg-flat) 72%, transparent); border-bottom: 1px solid var(--divider); }
+.top .wrap { display: flex; align-items: center; gap: 14px; height: 62px; }
+.logo { display: flex; align-items: center; gap: 10px; font: 600 17px var(--display); color: var(--fg); text-decoration: none; }
+.orb { width: 34px; height: 34px; flex: none; }
+.pill { font: 700 10.5px var(--ui); letter-spacing: .06em; color: #fff; background: var(--brand); padding: 4px 10px; border-radius: 99px;
+  border: 1px solid #3F8F0E; text-shadow: 0 1px 0 rgba(0,0,0,.25); white-space: nowrap; }
+nav { margin-left: auto; display: flex; gap: 4px; }
+nav a { color: var(--fg); text-decoration: none; font-size: 14px; padding: 7px 12px; border-radius: 99px; }
+nav a:hover { background: var(--divider); }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 9px; font: 600 15px var(--ui); color: var(--fg);
+  text-decoration: none; padding: 10px 20px; border-radius: 99px; border: 1px solid var(--card-edge); background: var(--glass);
+  box-shadow: 0 1px 2px rgba(0,0,0,.15), inset 0 1px 0 rgba(255,255,255,.5); cursor: pointer; }
+.btn:hover { background: var(--glass-hot); }
+.btn:active { transform: translateY(1px); }
+.btn.go { color: #fff; background: var(--brand); border-color: #3A840D; font-size: 18px; padding: 15px 30px;
+  text-shadow: 0 1px 1px rgba(0,0,0,.3); box-shadow: 0 6px 18px rgba(79,160,20,.4), inset 0 1px 0 rgba(255,255,255,.55); position: relative; overflow: hidden; }
+.btn.go:hover { filter: brightness(1.06); background: var(--brand); }
+.btn.go::after { content: ""; position: absolute; top: 0; bottom: 0; width: 60px; left: -90px; transform: skewX(-22deg);
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,.55), transparent); animation: sweep 5s ease-in-out infinite; }
+@keyframes sweep { 0%, 62% { left: -90px; } 100% { left: 120%; } }
+a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--a2, #74C22A); outline-offset: 3px; }
+
+/* Switch, as in the app */
+.switch { display: inline-flex; align-items: center; gap: 10px; font: 14px var(--ui); color: var(--fg); cursor: pointer; background: none; border: 0; padding: 4px; }
+.switch .track { width: 46px; height: 25px; border-radius: 99px; background: var(--groove); border: 1px solid var(--groove-edge);
+  box-shadow: inset 0 2px 3px rgba(0,0,0,.2); position: relative; transition: background .2s; flex: none; }
+.switch .track::after { content: ""; position: absolute; top: 2px; left: 2px; width: 19px; height: 19px; border-radius: 50%;
+  background: var(--knob); border: 1px solid var(--knob-edge); transition: left .2s; }
+.switch[aria-checked="true"] .track { background: linear-gradient(var(--a1, #A5DC55), var(--a3, #3F8F0E)); border-color: var(--a3, #3F8F0E); }
+.switch[aria-checked="true"] .track::after { left: 23px; }
+
+/* Hero */
+.hero { padding-top: 54px; display: grid; grid-template-columns: minmax(0, 1.05fr) minmax(0, .95fr); gap: 44px; align-items: center; }
+.hero h1 { font-weight: 300; font-size: clamp(42px, 7vw, 76px); line-height: 1; letter-spacing: -.02em; text-transform: lowercase; }
+.hero h1 b { font-weight: 600; color: var(--green); }
+.hero p.sub { font-size: 19px; color: var(--muted); max-width: 46ch; margin: 18px 0 26px; }
+.cta { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; }
+.meta { font-size: 13.5px; color: var(--muted); margin-top: 14px; }
+.status { display: flex; align-items: center; gap: 9px; font-size: 14px; color: var(--muted); margin-bottom: 14px; }
+.dot { width: 10px; height: 10px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #C6F08A, #4FA014); box-shadow: 0 0 8px #74C22A; }
+
+/* Cards */
+.card { background: var(--card); border: 1px solid var(--card-edge); border-radius: 18px; box-shadow: var(--shadow); overflow: hidden; }
+.card > .head { position: relative; color: #fff; padding: 16px 22px 15px; overflow: hidden;
+  background: linear-gradient(var(--a1) 0%, var(--a2) 49%, var(--a3) 51%, var(--a3) 100%);
+  background: linear-gradient(var(--a1) 0%, var(--a2) 50%, color-mix(in srgb, var(--a3) 88%, var(--a2)) 50%, var(--a3) 100%);
+  border-bottom: 1px solid var(--a3); text-shadow: 0 1px 2px rgba(0,0,0,.25); }
+.card > .head::before { content: ""; position: absolute; left: -10%; right: -10%; top: -60%; height: 105%; border-radius: 50%; background: rgba(255,255,255,.2); }
+.card > .head > * { position: relative; }
+.card .body { padding: 20px 22px 22px; }
+
+/* Live demo card */
+.demo { -webkit-box-reflect: below 6px linear-gradient(transparent 78%, rgba(255,255,255,.16)); }
+.demo .head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding: 18px 22px; }
+.demo .name { font: 600 27px/1.1 var(--display); }
+.demo .sub2 { font-size: 14px; opacity: .92; }
+.demo .big { font: 700 42px/1 var(--display); text-align: right; font-variant-numeric: tabular-nums; }
+.demo .cap { font-size: 11px; font-weight: 600; letter-spacing: .05em; text-align: right; }
+.tabs { display: flex; gap: 6px; padding: 12px 22px 0; }
+.tab { flex: 1; font: 600 13px var(--ui); color: var(--fg); padding: 7px 8px; border-radius: 99px; border: 1px solid var(--card-edge);
+  background: var(--glass); cursor: pointer; }
+.tab[aria-selected="true"] { color: #fff; background: linear-gradient(var(--a1), var(--a3)); border-color: var(--a3); text-shadow: 0 1px 1px rgba(0,0,0,.25); }
+.plotrow { display: flex; gap: 12px; align-items: stretch; }
+.plot { flex: 1; min-width: 0; aspect-ratio: 4 / 3; border-radius: 12px; border: 1px solid var(--plot-edge); background: var(--plot);
+  box-shadow: inset 0 2px 5px rgba(0,0,0,.1); overflow: hidden; }
+.plot canvas { width: 100%; height: 100%; display: block; }
+.bar { width: 14px; border-radius: 99px; background: var(--groove); border: 1px solid var(--groove-edge); position: relative; overflow: hidden; }
+.bar i { position: absolute; left: 0; right: 0; bottom: 0; border-radius: 99px; background: linear-gradient(var(--a1), var(--a3)); }
+.bar.in i { opacity: .5; }
+.axis { display: flex; justify-content: space-between; font-size: 10.5px; letter-spacing: .05em; color: var(--muted); margin: 6px 44px 10px 2px; }
+.ctl { display: grid; grid-template-columns: 1fr auto; align-items: baseline; margin-top: 12px; font-size: 15px; }
+.ctl output { font: 600 15px var(--mono); color: var(--a); }
+:root[data-theme="dark"] .ctl output { color: var(--a1); }
+input[type=range] { -webkit-appearance: none; appearance: none; grid-column: 1 / -1; width: 100%; height: 22px; background: none; margin: 2px 0 0; cursor: pointer; }
+input[type=range]::-webkit-slider-runnable-track { height: 8px; border-radius: 99px; border: 1px solid var(--groove-edge);
+  background: linear-gradient(90deg, var(--a2) var(--fill, 0%), var(--groove) var(--fill, 0%)); }
+input[type=range]::-moz-range-track { height: 8px; border-radius: 99px; border: 1px solid var(--groove-edge); background: var(--groove); }
+input[type=range]::-moz-range-progress { height: 8px; border-radius: 99px; background: var(--a2); }
+input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 22px; height: 22px; margin-top: -8px; border-radius: 50%;
+  border: 1px solid var(--knob-edge); background: radial-gradient(circle, var(--a) 0 4.5px, transparent 5.5px), var(--knob); box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+input[type=range]::-moz-range-thumb { width: 20px; height: 20px; border-radius: 50%; border: 1px solid var(--knob-edge);
+  background: radial-gradient(circle, var(--a) 0 4.5px, transparent 5.5px), var(--knob); box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+.hint { font-size: 13.5px; color: var(--muted); margin: 10px 0 0; min-height: 1.5em; }
+.demo-foot { display: flex; justify-content: space-between; align-items: center; border-top: 1px solid var(--divider); margin-top: 14px; padding-top: 12px; }
+.note { font-size: 12.5px; color: var(--muted); }
+
+/* Feature grid */
+.grid { display: grid; gap: 20px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.grid.two { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.feature .head { font: 600 20px var(--display); }
+.feature p { margin: 0; color: var(--muted); font-size: 15px; }
+.feature p + p { margin-top: 8px; }
+
+/* Flow diagram */
+.flow { display: grid; grid-template-columns: 1fr auto 1fr auto 1fr auto 1fr; gap: 10px; align-items: stretch; }
+.node { border: 1px solid var(--card-edge); border-radius: 14px; background: var(--card); padding: 16px 14px; text-align: center; box-shadow: var(--shadow); }
+.node b { display: block; font: 600 17px var(--display); }
+.node span { font-size: 13.5px; color: var(--muted); }
+.node.hub { background: var(--brand); border-color: #3A840D; color: #fff; text-shadow: 0 1px 1px rgba(0,0,0,.3); }
+.node.hub span { color: rgba(255,255,255,.92); }
+.arrow { align-self: center; color: var(--muted); font-size: 22px; }
+.arrow small { display: block; font-size: 10.5px; letter-spacing: .05em; text-transform: uppercase; text-align: center; }
+
+/* Safety panel */
+.safe { display: grid; grid-template-columns: auto 1fr; gap: 26px; align-items: center; padding: 28px; }
+.safe .orb { width: 92px; height: 92px; }
+.safe ul { margin: 12px 0 0; padding-left: 20px; color: var(--muted); }
+.safe li { margin: 4px 0; }
+.safe h3 { font-weight: 300; font-size: 30px; text-transform: lowercase; }
+
+.steps { counter-reset: s; list-style: none; padding: 0; margin: 0; }
+.steps li { counter-increment: s; position: relative; padding: 2px 0 14px 48px; }
+.steps li::before { content: counter(s); position: absolute; left: 0; top: 0; width: 32px; height: 32px; border-radius: 50%;
+  display: grid; place-items: center; font: 700 15px var(--display); color: #fff; background: var(--brand); border: 1px solid #3A840D;
+  text-shadow: 0 1px 1px rgba(0,0,0,.3); }
+.steps b { display: block; }
+.steps span { color: var(--muted); font-size: 15px; }
+
+table { width: 100%; border-collapse: collapse; font-size: 15px; }
+th, td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--divider); vertical-align: top; }
+th { font-size: 11.5px; letter-spacing: .07em; text-transform: uppercase; color: var(--muted); }
+tr:last-child td { border-bottom: 0; }
+.tag { display: inline-block; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 99px; border: 1px solid var(--card-edge); background: var(--glass); white-space: nowrap; }
+.tag.ok { color: #fff; background: var(--brand); border-color: #3A840D; }
+
+.shots { display: grid; grid-template-columns: 1.15fr .85fr; gap: 20px; align-items: start; }
+.shots figure { margin: 0; }
+.shots img { width: 100%; height: auto; display: block; border-radius: 14px; border: 1px solid var(--card-edge); box-shadow: var(--shadow); }
+.shots figcaption { font-size: 13px; color: var(--muted); margin-top: 8px; }
+.shots .side { display: grid; gap: 20px; }
+
+.download { text-align: center; padding: 40px 24px; }
+.download .orb { width: 74px; height: 74px; margin-bottom: 8px; }
+.download .cta { justify-content: center; }
+.hash { font: 12px var(--mono); color: var(--muted); word-break: break-all; margin-top: 14px; }
+
+footer { margin-top: 70px; border-top: 1px solid var(--divider); padding: 26px 0 40px; font-size: 13.5px; color: var(--muted); }
+footer .wrap { display: flex; flex-wrap: wrap; gap: 10px 26px; justify-content: space-between; }
+footer p { margin: 0; max-width: 70ch; }
+
+.ring { transform-origin: 50% 50%; animation: pulse 3.2s ease-in-out infinite; }
+@keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .72; } }
+
+@media (max-width: 900px) {
+  .hero { grid-template-columns: 1fr; gap: 30px; padding-top: 34px; }
+  .grid, .grid.two, .shots { grid-template-columns: 1fr; }
+  .flow { grid-template-columns: 1fr; }
+  .arrow { transform: rotate(90deg); justify-self: center; }
+  .arrow small { display: none; }
+  nav a:not(.keep) { display: none; }
+  .safe { grid-template-columns: 1fr; text-align: left; }
+  .top .pill { display: none; }
+  .demo { -webkit-box-reflect: unset; }
+}
+@media (max-width: 480px) {
+  .wrap { padding: 0 16px; }
+  .demo .big { font-size: 34px; }
+  .switch .lbl { display: none; }
+  section { padding-top: 48px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .btn.go::after, .ring { animation: none; }
+}
+</style>
+</head>
+<body>
+<div class="backdrop"><i></i></div>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <linearGradient id="orbBody" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FFFFFF"/><stop offset="1" stop-color="#B4BCC3"/></linearGradient>
+    <linearGradient id="orbRing" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#A5DC55"/><stop offset="1" stop-color="#3F8F0E"/></linearGradient>
+    <symbol id="orb" viewBox="0 0 64 64">
+      <circle cx="32" cy="32" r="30" fill="url(#orbBody)" stroke="#7C868E" stroke-width="2"/>
+      <ellipse cx="32" cy="19" rx="21" ry="13" fill="#fff" opacity=".55"/>
+      <circle class="ring" cx="32" cy="32" r="15.5" fill="none" stroke="url(#orbRing)" stroke-width="9"/>
+    </symbol>
+  </defs>
+</svg>
+
+<header class="top">
+  <div class="wrap">
+    <a class="logo" href="#top"><svg class="orb" aria-hidden="true"><use href="#orb"/></svg>OpenPedalHub</a>
+    <span class="pill">PEDALS READ-ONLY</span>
+    <nav aria-label="Sections">
+      <a href="#features">Features</a>
+      <a href="#safe">Safety</a>
+      <a href="#setup">Get started</a>
+      <a href="#pedals">Pedal sets</a>
+      <a href="#about">About</a>
+    </nav>
+    <button class="switch" id="themeSwitch" role="switch" aria-checked="false" aria-label="Dark theme"><span class="track"></span><span class="lbl">Dark</span></button>
+  </div>
+</header>
+
+<main id="top">
+  <div class="wrap">
+
+    <div class="hero">
+      <div>
+        <div class="status"><span class="dot"></span>Free and open source · Windows 10 and 11</div>
+        <h1>pedal response,<br><b>your way</b></h1>
+        <p class="sub">Dead zones, gamma and custom curves for sim-racing pedals whose own software can't do it. Community-driven, and it only ever listens to your pedals.</p>
+        <div class="cta">
+          <a class="btn go" data-download href="https://github.com/jojodoesthings/OpenPedalHub/releases/latest">Download for Windows</a>
+          <a class="btn" href="https://github.com/jojodoesthings/OpenPedalHub">View source</a>
+        </div>
+        <p class="meta"><span data-version>Latest release</span> · 6 MB zip · needs the .NET 9 Desktop Runtime</p>
+      </div>
+
+      <div class="card demo green" id="demo" aria-label="Live demo of a pedal curve">
+        <div class="head">
+          <div><div class="name" id="dName">Throttle</div><div class="sub2" id="dSub">Right pedal</div></div>
+          <div><div class="big" id="dOut">0.0%</div><div class="cap">SENT TO GAME</div></div>
+        </div>
+        <div class="tabs" role="tablist" aria-label="Pedal">
+          <button class="tab blue" role="tab" data-pedal="clutch" aria-selected="false">Clutch</button>
+          <button class="tab red" role="tab" data-pedal="brake" aria-selected="false">Brake</button>
+          <button class="tab green" role="tab" data-pedal="throttle" aria-selected="true">Throttle</button>
+        </div>
+        <div class="body">
+          <div class="plotrow">
+            <div class="plot"><canvas id="plot" aria-hidden="true"></canvas></div>
+            <div class="bar in" title="Pedal travel"><i id="barIn"></i></div>
+            <div class="bar" title="Sent to game"><i id="barOut"></i></div>
+          </div>
+          <div class="axis"><span>0</span><span>PEDAL TRAVEL</span><span>100</span></div>
+          <label class="ctl">Dead zone at rest <output id="oLow"></output>
+            <input type="range" id="low" min="0" max="40" step="0.1"></label>
+          <label class="ctl">Dead zone at full press <output id="oHigh"></output>
+            <input type="range" id="high" min="0" max="40" step="0.1"></label>
+          <label class="ctl">Gamma (sensitivity) <output id="oGamma"></output>
+            <input type="range" id="gamma" min="0.3" max="3" step="0.01"></label>
+          <p class="hint" id="hint"></p>
+          <div class="demo-foot">
+            <button class="switch" id="sweep" role="switch" aria-checked="true"><span class="track"></span>Demo sweep</button>
+            <span class="note">Try it: this is the real maths.</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <section id="features">
+      <div class="eyebrow">What it does</div>
+      <h2>everything the stock software left out</h2>
+      <p class="lead">Each pedal gets its own curve, and changes apply the moment you make them.</p>
+      <div class="grid">
+        <article class="card feature blue"><div class="head">Dead zones</div><div class="body">
+          <p>Trim the slack at rest and at full press, to a tenth of a percent. No more resting foot on the brake.</p></div></article>
+        <article class="card feature red"><div class="head">Gamma and custom curves</div><div class="body">
+          <p>Set sensitivity to 0.01, or drag up to eight points on the graph to shape the response exactly.</p></div></article>
+        <article class="card feature green"><div class="head">Calibration</div><div class="body">
+          <p>Measures where each pedal really rests and bottoms out, so 0 % and 100 % mean what they should.</p></div></article>
+        <article class="card feature green"><div class="head">Profiles</div><div class="body">
+          <p>Save a setup per game or car and flick between them with a sliding selector.</p></div></article>
+        <article class="card feature blue"><div class="head">In-game overlay</div><div class="body">
+          <p>A slim always-on-top bar with a tab per pedal. Tune on track without leaving the game.</p></div></article>
+        <article class="card feature red"><div class="head">Live graphs</div><div class="body">
+          <p>See pedal travel and the value sent to the game, side by side, as you press.</p></div></article>
+      </div>
+    </section>
+
+    <section id="look">
+      <div class="eyebrow">How it looks</div>
+      <h2>glossy by default, dark when you want</h2>
+      <div class="shots">
+        <figure><img src="img/screenshot.png" width="1920" height="1425" loading="lazy" alt="OpenPedalHub main window with clutch, brake and throttle cards, each with a response curve and sliders">
+          <figcaption>The main window, Default theme.</figcaption></figure>
+        <div class="side">
+          <figure><img src="img/screenshot-dark.png" loading="lazy" alt="The same window in the Dark theme">
+            <figcaption>Dark theme.</figcaption></figure>
+          <figure><img src="img/screenshot-overlay.png" loading="lazy" alt="The in-game overlay bar with a pedal tuning panel open">
+            <figcaption>The in-game overlay.</figcaption></figure>
+        </div>
+      </div>
+    </section>
+
+    <section id="safe">
+      <div class="eyebrow">Safety</div>
+      <h2>is it safe for my pedals?</h2>
+      <div class="card safe">
+        <svg class="orb" aria-hidden="true"><use href="#orb"/></svg>
+        <div>
+          <h3>it only listens</h3>
+          <ul>
+            <li>It receives the same position reports Windows already gets, the way a game does.</li>
+            <li>It never opens the pedals for writing and sends nothing to them.</li>
+            <li>It cannot touch firmware or on-device calibration. All curves are applied on the PC.</li>
+            <li>Close the app and your pedals behave exactly as before.</li>
+          </ul>
+        </div>
+      </div>
+
+      <h2 style="margin-top:44px">how it reaches your game</h2>
+      <div class="flow">
+        <div class="node"><b>Your pedals</b><span>Raw position</span></div>
+        <div class="arrow" aria-hidden="true">→<small>read only</small></div>
+        <div class="node hub"><b>OpenPedalHub</b><span>Applies your curves</span></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="node"><b>vJoy</b><span>Virtual controller</span></div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="node"><b>Your game</b><span>Sees shaped pedals</span></div>
+      </div>
+      <p class="lead" style="margin-top:18px">With HidHide installed, the real pedals are hidden from games while OpenPedalHub is open, so the game sees one set instead of two. They come back the moment the app closes.</p>
+    </section>
+
+    <section id="setup">
+      <div class="eyebrow">Get started</div>
+      <h2>four steps to the grid</h2>
+      <div class="grid two">
+        <div class="card"><div class="body">
+          <ol class="steps">
+            <li><b>Download and unzip</b><span>Put the folder anywhere and run OpenPedalHub.exe. Windows SmartScreen will warn because the app isn't code-signed: choose More info, then Run anyway.</span></li>
+            <li><b>Follow the Game connection checklist</b><span>The app tells you what's missing and links to the official downloads.</span></li>
+            <li><b>Start OpenPedalHub before your game</b><span>In the game, recalibrate the pedals and pick the vJoy axes.</span></li>
+            <li><b>Tune away</b><span>Changes apply immediately and save automatically.</span></li>
+          </ol>
+        </div></div>
+        <div class="card"><div class="body">
+          <table>
+            <thead><tr><th>You need</th><th>Why</th></tr></thead>
+            <tbody>
+              <tr><td>Windows 10 or 11, 64-bit</td><td></td></tr>
+              <tr><td><a href="https://dotnet.microsoft.com/download/dotnet/9.0">.NET 9 Desktop Runtime</a></td><td>Runs the app</td></tr>
+              <tr><td><a href="https://github.com/BrunnerInnovation/vJoy/releases">vJoy</a></td><td>The virtual controller your game reads</td></tr>
+              <tr><td><a href="https://github.com/nefarius/HidHide/releases">HidHide</a> <span class="tag">optional</span></td><td>Hides the real pedals from the game</td></tr>
+            </tbody>
+          </table>
+        </div></div>
+      </div>
+    </section>
+
+    <section id="pedals">
+      <div class="eyebrow">Pedal sets</div>
+      <h2>supported, and growing</h2>
+      <div class="grid two">
+        <div class="card"><div class="body">
+          <table>
+            <thead><tr><th>Pedal set</th><th>Status</th></tr></thead>
+            <tbody>
+              <tr><td>Thrustmaster T-Pedals (T3PM via USB adapter)</td><td><span class="tag ok">Tested</span></td></tr>
+              <tr><td>Anything else that shows up as a game controller</td><td><span class="tag">Teach it in a minute</span></td></tr>
+            </tbody>
+          </table>
+        </div></div>
+        <div class="card feature green"><div class="head">Add yours</div><div class="body">
+          <p>Choose Settings → Set up a pedal set and press each pedal when asked. The set works on your PC straight away.</p>
+          <p>The app also saves a small report file. <a href="https://github.com/jojodoesthings/OpenPedalHub/issues">Share it in an issue</a> and the set gets added for everyone. Reports hold hardware model details only: no serial numbers, user names or file paths.</p>
+        </div></div>
+      </div>
+    </section>
+
+    <section id="about">
+      <div class="eyebrow">About</div>
+      <h2>a hub built by its drivers</h2>
+      <div class="grid two">
+        <div>
+          <p class="lead">OpenPedalHub started with one pedal set whose vendor software had no dead-zone or gamma controls. The aim now is a free, community-driven home for pedal tuning: one app that works across brands, improved by the people who use it.</p>
+          <p class="lead">The code is open under the GNU GPL v3. Bug reports, pedal-set reports and pull requests are all welcome.</p>
+          <div class="cta">
+            <a class="btn" href="https://github.com/jojodoesthings/OpenPedalHub">GitHub</a>
+            <a class="btn" href="https://github.com/jojodoesthings/OpenPedalHub/issues">Report a problem</a>
+          </div>
+        </div>
+        <div class="card"><div class="body">
+          <table>
+            <thead><tr><th colspan="2">Known limits</th></tr></thead>
+            <tbody>
+              <tr><td>Exclusive fullscreen</td><td>Hides the overlay. Use borderless or windowed.</td></tr>
+              <tr><td>Pedals plugged into a wheel base</td><td>Work, but can't be hidden, so the game sees both sets.</td></tr>
+              <tr><td>Combined throttle and brake axis</td><td>Not supported.</td></tr>
+            </tbody>
+          </table>
+        </div></div>
+      </div>
+    </section>
+
+    <section id="download">
+      <div class="card download">
+        <svg class="orb" aria-hidden="true"><use href="#orb"/></svg>
+        <h2>ready when you are</h2>
+        <p class="lead" style="margin-inline:auto">Free, no account, no installer. Unzip and run.</p>
+        <div class="cta">
+          <a class="btn go" data-download href="https://github.com/jojodoesthings/OpenPedalHub/releases/latest">Download for Windows</a>
+          <a class="btn" href="https://github.com/jojodoesthings/OpenPedalHub/releases">All releases</a>
+        </div>
+        <p class="meta"><span data-version>Latest release</span> · or <a href="https://github.com/jojodoesthings/OpenPedalHub#building-from-source">build it from source</a></p>
+      </div>
+    </section>
+  </div>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>© 2026 <a href="https://twitter.com/SOHCDSeries">@SOHCDSeries</a> and OpenPedalHub contributors. Code under the <a href="https://github.com/jojodoesthings/OpenPedalHub/blob/main/LICENSE">GNU GPL v3</a>; sounds are separately licensed.</p>
+    <p>An independent community project, not affiliated with or endorsed by Thrustmaster or any other hardware or game company. Provided without warranty.</p>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const root = document.documentElement;
+
+  // ----- Theme: Default and Dark, as in the app -----
+  const themeSwitch = document.getElementById('themeSwitch');
+  let saved = null;
+  try { saved = localStorage.getItem('theme'); } catch { /* private window: fall back to the system setting */ }
+  const setTheme = dark => {
+    root.dataset.theme = dark ? 'dark' : 'light';
+    themeSwitch.setAttribute('aria-checked', dark);
+    draw();
+  };
+  themeSwitch.addEventListener('click', () => {
+    const dark = root.dataset.theme !== 'dark';
+    try { localStorage.setItem('theme', dark ? 'dark' : 'light'); } catch { /* not remembered, still switches */ }
+    setTheme(dark);
+  });
+
+  // ----- Live curve demo -----
+  const pedals = {
+    clutch:   { name: 'Clutch',   sub: 'Left pedal',   cls: 'blue',  low: 5, high: 10, gamma: 1.00 },
+    brake:    { name: 'Brake',    sub: 'Middle pedal', cls: 'red',   low: 3, high: 8,  gamma: 1.80 },
+    throttle: { name: 'Throttle', sub: 'Right pedal',  cls: 'green', low: 2, high: 3,  gamma: 1.20 },
+  };
+  let current = 'throttle', input = 0, sweeping = true, t0 = performance.now();
+  const $ = id => document.getElementById(id);
+  const demo = $('demo'), canvas = $('plot'), ctx = canvas.getContext('2d');
+  const low = $('low'), high = $('high'), gamma = $('gamma');
+
+  // Same shaping as the app: dead zones first, then gamma.
+  const shape = (x, p) => {
+    const lo = p.low / 100, hi = 1 - p.high / 100;
+    if (x <= lo) return 0;
+    if (x >= hi) return 1;
+    return Math.pow((x - lo) / (hi - lo), p.gamma);
+  };
+  const hintFor = g => Math.abs(g - 1) < 0.005 ? 'Linear: output follows the pedal directly'
+    : g > 1 ? 'Gentler at the start of travel, steeper near the end'
+            : 'Steeper at the start of travel, gentler near the end';
+
+  function syncControls() {
+    const p = pedals[current];
+    demo.className = 'card demo ' + p.cls;
+    $('dName').textContent = p.name; $('dSub').textContent = p.sub;
+    low.value = p.low; high.value = p.high; gamma.value = p.gamma;
+    document.querySelectorAll('.tab').forEach(t => t.setAttribute('aria-selected', t.dataset.pedal === current));
+    readControls();
+  }
+  function readControls() {
+    const p = pedals[current];
+    p.low = +low.value; p.high = +high.value; p.gamma = +gamma.value;
+    $('oLow').textContent = p.low.toFixed(1) + ' %';
+    $('oHigh').textContent = p.high.toFixed(1) + ' %';
+    $('oGamma').textContent = p.gamma.toFixed(2);
+    $('hint').textContent = hintFor(p.gamma);
+    for (const el of [low, high, gamma]) el.style.setProperty('--fill', ((el.value - el.min) / (el.max - el.min) * 100) + '%');
+    draw();
+  }
+
+  function draw() {
+    if (!ctx) return;
+    const p = pedals[current], css = getComputedStyle(demo);
+    const v = k => css.getPropertyValue(k).trim();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = canvas.clientWidth, h = canvas.clientHeight;
+    if (!w || !h) return;
+    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) { canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr); }
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, w, h);
+    const m = 14, X = x => m + x * (w - 2 * m), Y = y => h - m - y * (h - 2 * m);
+
+    ctx.strokeStyle = v('--plot-grid'); ctx.lineWidth = 1;
+    for (let i = 0; i <= 4; i++) {
+      ctx.beginPath(); ctx.moveTo(X(i / 4), Y(0)); ctx.lineTo(X(i / 4), Y(1)); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(X(0), Y(i / 4)); ctx.lineTo(X(1), Y(i / 4)); ctx.stroke();
+    }
+    // Dead zones, shaded and marked with dashed edges.
+    const lo = p.low / 100, hi = 1 - p.high / 100;
+    ctx.fillStyle = v('--plot-dead');
+    ctx.fillRect(X(0), Y(1), X(lo) - X(0), Y(0) - Y(1));
+    ctx.fillRect(X(hi), Y(1), X(1) - X(hi), Y(0) - Y(1));
+    ctx.setLineDash([4, 4]); ctx.strokeStyle = v('--a2');
+    for (const x of [lo, hi]) { ctx.beginPath(); ctx.moveTo(X(x), Y(0)); ctx.lineTo(X(x), Y(1)); ctx.stroke(); }
+    // Straight-line reference.
+    ctx.strokeStyle = v('--plot-ref');
+    ctx.beginPath(); ctx.moveTo(X(0), Y(0)); ctx.lineTo(X(1), Y(1)); ctx.stroke();
+    ctx.setLineDash([]);
+
+    const path = () => { ctx.beginPath(); for (let i = 0; i <= 160; i++) { const x = i / 160; i ? ctx.lineTo(X(x), Y(shape(x, p))) : ctx.moveTo(X(x), Y(shape(x, p))); } };
+    path(); ctx.lineTo(X(1), Y(0)); ctx.lineTo(X(0), Y(0)); ctx.closePath();
+    const fill = ctx.createLinearGradient(0, Y(1), 0, Y(0));
+    fill.addColorStop(0, v('--a2') + '55'); fill.addColorStop(1, v('--a2') + '08');
+    ctx.fillStyle = fill; ctx.fill();
+    ctx.lineJoin = ctx.lineCap = 'round';
+    path(); ctx.strokeStyle = v('--a2') + '40'; ctx.lineWidth = 9; ctx.stroke();
+    path(); ctx.strokeStyle = v('--a2'); ctx.lineWidth = 3.5; ctx.stroke();
+
+    const out = shape(input, p);
+    ctx.beginPath(); ctx.arc(X(input), Y(out), 6.5, 0, Math.PI * 2);
+    ctx.fillStyle = '#fff'; ctx.fill(); ctx.lineWidth = 3; ctx.strokeStyle = v('--a3'); ctx.stroke();
+
+    $('dOut').textContent = (out * 100).toFixed(1) + '%';
+    $('barIn').style.height = (input * 100) + '%';
+    $('barOut').style.height = (out * 100) + '%';
+  }
+
+  const still = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  function tick(now) {
+    if (sweeping) {
+      const ph = ((now - t0) / 4200) % 1;           // press, hold, release, rest
+      input = ph < .42 ? ph / .42 : ph < .5 ? 1 : ph < .92 ? 1 - (ph - .5) / .42 : 0;
+      input = input * input * (3 - 2 * input);
+      draw();
+    }
+    requestAnimationFrame(tick);
+  }
+  const sweepSwitch = $('sweep');
+  const setSweep = on => { sweeping = on; sweepSwitch.setAttribute('aria-checked', on); if (on) t0 = performance.now(); };
+  sweepSwitch.addEventListener('click', () => setSweep(!sweeping));
+  // Drag on the graph to press the pedal yourself.
+  const press = e => { const r = canvas.getBoundingClientRect(); input = Math.min(1, Math.max(0, (e.clientX - r.left - 14) / (r.width - 28))); setSweep(false); draw(); };
+  canvas.addEventListener('pointerdown', e => { canvas.setPointerCapture(e.pointerId); press(e); });
+  canvas.addEventListener('pointermove', e => { if (e.buttons) press(e); });
+  canvas.style.touchAction = 'none';
+
+  for (const el of [low, high, gamma]) el.addEventListener('input', readControls);
+  document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { current = t.dataset.pedal; syncControls(); }));
+  window.addEventListener('resize', draw);
+
+  setTheme(saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches);
+  syncControls();
+  if (still) { setSweep(false); input = .6; draw(); }
+  requestAnimationFrame(tick);
+
+  // ----- Download buttons: point straight at the newest release's zip -----
+  fetch('https://api.github.com/repos/jojodoesthings/OpenPedalHub/releases/latest')
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(rel => {
+      const zip = (rel.assets || []).find(a => /\.zip$/i.test(a.name));
+      if (zip) document.querySelectorAll('[data-download]').forEach(a => { a.href = zip.browser_download_url; });
+      const ver = (rel.tag_name || '').replace(/^v/, '');
+      if (ver) document.querySelectorAll('[data-version]').forEach(s => { s.textContent = 'Version ' + ver; });
+    })
+    .catch(() => { /* the buttons already lead to the Releases page */ });
+})();
+</script>
+</body>
+</html>
