@@ -84,6 +84,9 @@ serial numbers, no device instance paths, no computer or user name, and no file 
 
 ## Downloading a release
 
+Get the latest zip from the [Releases page](https://github.com/jojodoesthings/OpenPedalHub/releases/latest),
+unzip it anywhere, and run `OpenPedalHub.exe`.
+
 Releases are not code-signed, so Windows SmartScreen will warn the first time you run one, and some antivirus
 tools may flag it: the app reads controller input and starts a small hidden helper that unhides your pedals if
 the app ever crashes. The full source is here to inspect, and you can build it yourself.

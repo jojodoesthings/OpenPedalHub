@@ -10,6 +10,11 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <RootNamespace>OpenPedalHub</RootNamespace>
     <AssemblyName>OpenPedalHub</AssemblyName>
+    <Version>0.1.0</Version>
+    <Product>OpenPedalHub</Product>
+    <Company>OpenPedalHub contributors</Company>
+    <Copyright>Copyright (C) 2026 @SOHCDSeries and OpenPedalHub contributors. GPL v3.</Copyright>
+    <IncludeSourceRevisionInInformationalVersion>false</IncludeSourceRevisionInInformationalVersion>
     <!-- One icon for the program file, window, taskbar and tray. Made by tools\make_icon.ps1. -->
     <ApplicationIcon>app.ico</ApplicationIcon>
   </PropertyGroup>
