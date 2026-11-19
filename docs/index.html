@@ -488,7 +488,7 @@ footer p { margin: 0; max-width: 70ch; }
   // ----- Theme: Default and Dark, as in the app -----
   const themeSwitch = document.getElementById('themeSwitch');
   let saved = null;
-  try { saved = localStorage.getItem('theme'); } catch { /* private window: fall back to the system setting */ }
+  try { saved = localStorage.getItem('theme'); } catch { /* private window: starts in the Default theme */ }
   const setTheme = dark => {
     root.dataset.theme = dark ? 'dark' : 'light';
     themeSwitch.setAttribute('aria-checked', dark);
@@ -611,7 +611,7 @@ footer p { margin: 0; max-width: 70ch; }
   document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => { current = t.dataset.pedal; syncControls(); }));
   window.addEventListener('resize', draw);
 
-  setTheme(saved ? saved === 'dark' : window.matchMedia('(prefers-color-scheme: dark)').matches);
+  setTheme(saved === 'dark');   // Default (silver) unless the visitor chose Dark, as in the app
   syncControls();
   if (still) { setSweep(false); input = .6; draw(); }
   requestAnimationFrame(tick);
